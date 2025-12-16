@@ -59,10 +59,10 @@ def help():
     msg = """
 any2toon Conversion Functions:
 -----------------------------
-1. convert_to_toon(data, format): 
-   Universal converter. Supported formats: 'json', 'yaml', 'xml', 'csv', 'avro', 'parquet', 'bson'.
+1. Use any2toon.convert(data) to auto-detect the format and convert it to TOON.
+ Supported formats are: 'json', 'yaml', 'xml', 'csv', 'avro', 'parquet', 'bson'.
 
-2. Format-Specific Converters:
+2. If for some reason you need to explicitly specify the format, you can use the format-Specific Converters:
    - json_to_toon(data)
    - yaml_to_toon(data)
    - xml_to_toon(data)
