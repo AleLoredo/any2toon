@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "any2toon"
+version = "0.1.0"
+description = "A library to convert JSON, YAML, and XML to TOON format."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "PyYAML>=6.0",
+    "xmltodict>=0.13.0",
+    "fastavro>=1.0.0",
+    "pyarrow>=10.0.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/example/any2toon"
