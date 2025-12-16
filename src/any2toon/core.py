@@ -36,6 +36,22 @@ def convert_to_toon(data_input: Any, input_format: str) -> str:
     else:
         raise InvalidFormatError(f"Unsupported format: {input_format}. Supported formats: json, yaml, xml, csv, avro, parquet, bson")
 
+
+
+def convert(data_input: Any) -> str:
+    """
+    Auto-detects format and converts data to TOON.
+    
+    Args:
+        data_input: Input data (string, bytes, or file-like).
+        
+    Returns:
+        str: TOON formatted string.
+    """
+    from .sniffer import detect_format
+    detected_format = detect_format(data_input)
+    return convert_to_toon(data_input, detected_format)
+
 def help():
     """
     Prints a list of all available conversion functions in the any2toon library.
