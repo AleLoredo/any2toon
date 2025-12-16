@@ -1,6 +1,6 @@
 # any2toon
 
-**any2toon** is a robust Python library designed to convert various data serialization formats (**JSON, YAML, XML, CSV, Avro, Parquet, BSON**) into **TOON** (Token Oriented Object Notation).
+**any2toon** is a robust and lightweight Python library designed to convert various data serialization formats (**JSON, YAML, XML, CSV, Avro, Parquet, BSON**) into **TOON** (Token Oriented Object Notation) to optimize interactions with LLMs.
 
 ![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
