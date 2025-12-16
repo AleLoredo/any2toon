@@ -1,6 +1,6 @@
 # any2toon
 
-A robust, efficient, and well-documented Python library for converting common data serialization formats into **TOON (Token Oriented Object Notation)**.
+A robust, efficient, universal adapter Python library for converting common data serialization formats (such as JSON, YAML, XML, CSV, Avro, and Parquet) into **TOON (Token Oriented Object Notation)**.
 
 ![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -37,6 +37,14 @@ pip install -r requirements.txt
 
 ## 🛠️ Core Functionality & Approach
 
+- **CSV**: If `rows >= 100`:
+  - **Priority 1**: Uses `polars`.
+  - **Priority 2**: Uses `pandas`.
+  - **Fallback**: Standard Python (with warning).
+- **Parquet**: If `rows >= 100`:
+  - **Priority 1**: Uses `polars`.
+  - **Priority 2**: Uses `pandas`.
+  - **Fallback**: Base Python (with warning).
 The library follows a consistent pipeline for all conversions:
 1.  **Ingestion**: Read the raw input (string, bytes, or file stream) using a format-specific specialized library.
 2.  **Normalization**: Convert the input into a standard Python object structure (Lists and Dictionaries).
