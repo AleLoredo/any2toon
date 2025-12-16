@@ -35,3 +35,26 @@ def convert_to_toon(data_input: Any, input_format: str) -> str:
         return bson_to_toon(data_input)
     else:
         raise InvalidFormatError(f"Unsupported format: {input_format}. Supported formats: json, yaml, xml, csv, avro, parquet, bson")
+
+def help():
+    """
+    Prints a list of all available conversion functions in the any2toon library.
+    """
+    msg = """
+any2toon Conversion Functions:
+-----------------------------
+1. convert_to_toon(data, format): 
+   Universal converter. Supported formats: 'json', 'yaml', 'xml', 'csv', 'avro', 'parquet', 'bson'.
+
+2. Format-Specific Converters:
+   - json_to_toon(data)
+   - yaml_to_toon(data)
+   - xml_to_toon(data)
+   - csv_to_toon(data)     [Optimized with Polars/Pandas for large files]
+   - parquet_to_toon(data) [Optimized with Polars/Pandas for large files]
+   - avro_to_toon(data)    [Optimized with Polars for large lists]
+   - bson_to_toon(data)    [Optimized with Polars for large lists]
+   
+For more details, see the documentation or inspect docstrings.
+    """
+    print(msg.strip())
