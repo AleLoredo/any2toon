@@ -21,8 +21,6 @@ This library acts as a universal adapter, taking standard formats (JSON, YAML, X
 
 ## 🚀 Installation
 
-## 🚀 Installation
-
 ### Minimal Installation (JSON, YAML, XML, CSV support)
 ```bash
 pip install any2toon
@@ -171,7 +169,7 @@ print(convert_to_toon(bytes_data, 'bson'))
 ### `convert_to_toon(data_input, input_format) -> str`
 The universal entry point.
 - `data_input`: `str` (for text formats), `bytes` or `BytesIO` (for binary formats like Avro/Parquet), or `dict/list` (if pre-parsed).
-- `input_format`: Case-insensitive string: `'json'`, `'yaml'`, `'xml'`, `'csv'`, `'avro'`, `'parquet'`.
+- `input_format`: Case-insensitive string: `'json'`, `'yaml'`, `'xml'`, `'csv'`, `'avro'`, `'parquet'`, `'bson'`.
 
 ### Specific Converters
 Found in `any2toon.converters`:
