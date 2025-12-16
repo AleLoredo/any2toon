@@ -3,33 +3,38 @@ import yaml
 import xmltodict
 import csv
 import io
-import fastavro
-import pyarrow.parquet as pq
-import pyarrow as pa
 import warnings
 from typing import Union, Dict, List, Any
 from .exceptions import ConversionError
 from .toon_serializer import dumps as toon_dumps
 from . import config
 
-# Optional Polars import
+# Optional Optimization Imports (Polars/Pandas)
 try:
     import polars as pl
     _HAS_POLARS = True
 except ImportError:
-    import polars as pl # For typing/mocking if needed
     _HAS_POLARS = False
 
-# Optional Pandas import
 try:
     import pandas as pd
     _HAS_PANDAS = True
 except ImportError:
-    import pandas as pd # For typing/mocking
     _HAS_PANDAS = False
+
+def _ensure_dependency(module_name: str, extra_name: str):
+    """Helper to check if a module is imported, raise error if not."""
+    try:
+        __import__(module_name)
+    except ImportError:
+        raise ImportError(
+            f"Missing dependency '{module_name}'. "
+            f"Install it via 'pip install any2toon[{extra_name}]' to support this format."
+        )
 
 def _polars_csv_to_toon(csv_string: str) -> str:
     """Optimized CSV conversion using Polars."""
+    # Assuming caller checked _HAS_POLARS
     df = pl.read_csv(io.StringIO(csv_string))
     return _polars_df_to_toon(df)
 
@@ -38,14 +43,10 @@ def _pandas_csv_to_toon(csv_string: str) -> str:
     df = pd.read_csv(io.StringIO(csv_string))
     if len(df) == 0:
         return ""
-        
     cols = df.columns
-    # Vectorized string creation
     result_series = "- " + cols[0] + ": " + df[cols[0]].astype(str)
-    
     for col in cols[1:]:
         result_series = result_series + "\n  " + col + ": " + df[col].astype(str)
-        
     return "\n".join(result_series)
 
 def _polars_parquet_to_toon(parquet_bytes: Union[bytes, io.BytesIO]) -> str:
@@ -57,7 +58,7 @@ def _polars_parquet_to_toon(parquet_bytes: Union[bytes, io.BytesIO]) -> str:
     df = pl.read_parquet(f)
     return _polars_df_to_toon(df)
 
-def _polars_df_to_toon(df: 'pl.DataFrame') -> str:
+def _polars_df_to_toon(df: 'pl.DataFrame') -> str: # type: ignore
     """Vectorized conversion of DataFrame to TOON string."""
     if df.height == 0:
         return ""
@@ -193,17 +194,12 @@ def csv_to_toon(data: str) -> str:
 def avro_to_toon(data: Union[bytes, io.BytesIO]) -> str:
     """
     Converts Avro data (OCF format) to TOON.
-    
-    Args:
-        data: Avro data as bytes or file-like object (BytesIO).
-              
-    Returns:
-        str: TOON formatted string.
-        
-    Raises:
-        ConversionError: If Avro parsing fails.
+    Requires 'any2toon[avro]'.
     """
     try:
+        _ensure_dependency("fastavro", "avro")
+        import fastavro
+        
         if isinstance(data, bytes):
             f = io.BytesIO(data)
         else:
@@ -213,6 +209,8 @@ def avro_to_toon(data: Union[bytes, io.BytesIO]) -> str:
         reader = fastavro.reader(f)
         parsed_data = list(reader)
         return toon_dumps(parsed_data)
+    except ImportError as e:
+        raise e
     except Exception as e:
         raise ConversionError(f"Invalid Avro: {e}")
 
@@ -238,17 +236,13 @@ def _pandas_parquet_to_toon(parquet_bytes: Union[bytes, io.BytesIO]) -> str:
 def parquet_to_toon(data: Union[bytes, io.BytesIO]) -> str:
     """
     Converts Parquet data to TOON.
-    
-    Args:
-        data: Parquet data as bytes or file-like object (BytesIO).
-              
-    Returns:
-        str: TOON formatted string.
-        
-    Raises:
-        ConversionError: If Parquet parsing fails.
+    Requires 'any2toon[parquet]'.
     """
     try:
+        _ensure_dependency("pyarrow", "parquet")
+        import pyarrow.parquet as pq
+        import pyarrow as pa
+        
         # Prepare file-like object for metadata reading
         if isinstance(data, bytes):
             f = io.BytesIO(data)
@@ -284,5 +278,40 @@ def parquet_to_toon(data: Union[bytes, io.BytesIO]) -> str:
         table = pq.read_table(f)
         parsed_data = table.to_pylist()
         return toon_dumps(parsed_data)
+    except ImportError as e:
+        raise e
     except Exception as e:
         raise ConversionError(f"Invalid Parquet: {e}")
+
+def bson_to_toon(data: Union[bytes, io.BytesIO]) -> str:
+    """
+    Converts BSON data to TOON.
+    Handles single document or concatenated documents (dumps).
+    Requires 'any2toon[bson]'.
+    
+    Args:
+        data: BSON data as bytes or file-like object (BytesIO).
+              
+    Returns:
+        str: TOON formatted string.
+        
+    Raises:
+        ConversionError: If BSON parsing fails.
+    """
+    try:
+        _ensure_dependency("bson", "bson")
+        import bson
+        
+        if isinstance(data, io.BytesIO):
+            bson_bytes = data.read()
+        else:
+            bson_bytes = data
+            
+        # decode_all returns a list of dictionaries (handles multiple docs)
+        # It requires the data to be valid BSON messages concatenated
+        parsed_data = bson.decode_all(bson_bytes)
+        return toon_dumps(parsed_data)
+    except ImportError as e:
+        raise e
+    except Exception as e:
+        raise ConversionError(f"Invalid BSON: {e}")

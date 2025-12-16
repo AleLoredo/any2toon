@@ -1,6 +1,6 @@
 # any2toon
 
-A robust, efficient, universal adapter Python library for converting common data serialization formats (such as JSON, YAML, XML, CSV, Avro, and Parquet) into **TOON (Token Oriented Object Notation)**.
+**any2toon** is a robust Python library designed to convert various data serialization formats (**JSON, YAML, XML, CSV, Avro, Parquet, BSON**) into **TOON** (Token Oriented Object Notation).
 
 ![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -21,17 +21,33 @@ This library acts as a universal adapter, taking standard formats (JSON, YAML, X
 
 ## 🚀 Installation
 
-Install the library and its dependencies directly:
+## 🚀 Installation
+
+### Minimal Installation (JSON, YAML, XML, CSV support)
+```bash
+pip install any2toon
+```
+
+### Full Installation (All formats + Optimizations)
+```bash
+pip install "any2toon[all]"
+```
+
+### Format-Specific Installation
+If you only need specific formats, you can install them individually to keep your environment light:
 
 ```bash
-pip install -r requirements.txt
+pip install "any2toon[parquet]" # For Parquet support (if installing from PyPI)
+pip install ".[parquet]"        # If installing locally from source
 ```
 
 **Dependencies:**
 - `PyYAML`: For parsing YAML files.
 - `xmltodict`: For converting XML parsing trees into Python dictionaries.
-- `fastavro`: For reading binary Apache Avro OCF files.
-- `pyarrow`: For reading Apache Parquet optimized columnar files.
+- `fastavro`: (Optional) For reading binary Apache Avro OCF files.
+- `pyarrow`: (Optional) For reading Apache Parquet optimized columnar files.
+- `pymongo`: (Optional) For decoding BSON files.
+- `polars` / `pandas`: (Optional) For high-performance conversion of large datasets.
 
 ---
 
@@ -136,6 +152,18 @@ We leverage `pyarrow` to read Parquet files.
 print(convert_to_toon(bytes_data, 'parquet'))
 ```
 
+### 7. BSON (Binary JSON)
+**Approach**: 
+We use `pymongo` (specifically its `bson` module) to decode BSON data.
+- **Support**: Handles both single BSON documents and concatenated BSON streams (mongo dumps).
+- **Transformation**: BSON types are decoded into standard Python dictionaries/lists, then serialized to TOON.
+
+```python
+import bson
+# Assuming 'bytes_data' is a BSON byte string
+print(convert_to_toon(bytes_data, 'bson'))
+```
+
 ---
 
 ## 📚 API Reference
@@ -153,6 +181,7 @@ Found in `any2toon.converters`:
 - `csv_to_toon(data)`
 - `avro_to_toon(data)`
 - `parquet_to_toon(data)`
+- `bson_to_toon(data)`
 
 ### Exceptions
 - `InvalidFormatError`: Raised if you request a format not supported.
