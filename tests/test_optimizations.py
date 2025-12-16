@@ -15,32 +15,28 @@ def test_optimization_fallbacks_csv():
     set_warnings(True)
 
     # 1. Test Polars (Priority 1)
-    # _HAS_POLARS = True (default in this env)
-    # _HAS_PANDAS = True (default)
     res_polars = convert_to_toon(csv_data, 'csv')
-    assert "id: 0" in res_polars
-    assert "val: data0" in res_polars
-    assert "id: 149" in res_polars
+    assert "root[150]{id,val}:" in res_polars
+    assert "0,data0" in res_polars
+    assert "149,data149" in res_polars
 
     # 2. Test Pandas (Priority 2) - Mock Polars missing, Pandas present
     with patch('any2toon.converters._HAS_POLARS', False):
          with patch('any2toon.converters._HAS_PANDAS', True):
-             # Should NOT warn because Pandas is found
              with warnings.catch_warnings(record=True) as record:
                  warnings.simplefilter("always")
                  res_pandas = convert_to_toon(csv_data, 'csv')
-                 assert "id: 0" in res_pandas
-                 # Check no warning about optimization missing
+                 assert "root[150]{id,val}:" in res_pandas
                  my_warnings = [w for w in record if "Optimized engines" in str(w.message)]
                  assert len(my_warnings) == 0
 
     # 3. Test Fallback (Priority 3) - Mock both missing
     with patch('any2toon.converters._HAS_POLARS', False):
          with patch('any2toon.converters._HAS_PANDAS', False):
-             # Should warn
              with pytest.warns(UserWarning, match="Optimized engines"):
                 res_fallback = convert_to_toon(csv_data, 'csv')
-                assert "id: 0" in res_fallback
+                assert "root[150]{id,val}:" in res_fallback
+                assert "0,data0" in res_fallback
 
 def test_optimization_fallbacks_parquet():
     # Setup data > 100 rows
@@ -55,7 +51,8 @@ def test_optimization_fallbacks_parquet():
 
     # 1. Polars Present (Priority 1)
     res_polars = convert_to_toon(parquet_data, 'parquet')
-    assert "col: val" in res_polars
+    assert "root[150]{col}:" in res_polars
+    assert "val" in res_polars # " val" matches " val"
     
     # 2. Polars Missing, Pandas Present (Priority 2)
     with patch('any2toon.converters._HAS_POLARS', False):
@@ -64,7 +61,7 @@ def test_optimization_fallbacks_parquet():
             with warnings.catch_warnings(record=True) as record:
                 warnings.simplefilter("always")
                 res_pandas = convert_to_toon(parquet_data, 'parquet')
-                assert "col: val" in res_pandas
+                assert "root[150]{col}:" in res_pandas
                 my_warnings = [w for w in record if "Optimized engines" in str(w.message)]
                 assert len(my_warnings) == 0
 
@@ -73,7 +70,7 @@ def test_optimization_fallbacks_parquet():
         with patch('any2toon.converters._HAS_PANDAS', False):
             with pytest.warns(UserWarning, match="Optimized engines"):
                 res_fallback = convert_to_toon(parquet_data, 'parquet')
-                assert "col: val" in res_fallback
+                assert "root[150]{col}:" in res_fallback
 
 def test_parquet_small_file_no_optimization():
     # < 100 rows should NOT trigger optimization logic (verified by ensuring no warning when opt missing)

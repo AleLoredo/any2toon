@@ -9,22 +9,27 @@ def test_bson_to_toon_single_doc():
     data = bson.encode(doc)
     
     result = convert_to_toon(data, 'bson')
-    assert "name: Test" in result
-    assert "val: 123" in result
+    # bson.decode_all returns [doc]
+    # So it's a table of 1 item:
+    # root[1]{name,val}:
+    #  Test,123
+    assert "root[1]{name,val}:" in result
+    assert "Test,123" in result
 
 def test_bson_to_toon_multiple_docs():
     doc1 = {"id": 1, "name": "A"}
     doc2 = {"id": 2, "name": "B"}
-    # BSON dump format is just concatenated BSON documents
+    # BSON dump format is just concatenated BSON documents -> List of Dicts
     data = bson.encode(doc1) + bson.encode(doc2)
     
     result = convert_to_toon(data, 'bson')
-    # Should result in a list of dicts
-    assert "id: 1" in result
-    assert "name: A" in result
-    assert "id: 2" in result
-    assert "name: B" in result
-    assert result.count("-") >= 2
+    # Should result in Table format
+    # root[2]{id,name}:
+    #  1,A
+    #  2,B
+    assert "root[2]{id,name}:" in result
+    assert "1,A" in result
+    assert "2,B" in result
 
 def test_invalid_bson():
     data = b"invalid_bson_bytes"
@@ -37,4 +42,7 @@ def test_bson_from_bytesio():
     stream = io.BytesIO(data)
     
     result = convert_to_toon(stream, 'bson')
-    assert "name: StreamTest" in result
+    # root[1]{name}:
+    #  StreamTest
+    assert "root[1]{name}:" in result
+    assert "StreamTest" in result

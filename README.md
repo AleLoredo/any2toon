@@ -51,18 +51,29 @@ pip install ".[parquet]"        # If installing locally from source
 
 ## 🛠️ Core Functionality & Approach
 
-- **CSV**: If `rows >= 100`:
-  - **Priority 1**: Uses `polars`.
-  - **Priority 2**: Uses `pandas`.
-  - **Fallback**: Standard Python (with warning).
-- **Parquet**: If `rows >= 100`:
-  - **Priority 1**: Uses `polars`.
-  - **Priority 2**: Uses `pandas`.
-  - **Fallback**: Base Python (with warning).
+## 🛠️ Core Functionality & Approach
+
+### ⚡ Performance & Optimization Strategy
+The library uses a data-driven **Tiered Optimization Strategy** based on extensive benchmarking:
+
+| Input Format | Threshold | Priority 1 | Priority 2 | Fallback |
+| :--- | :--- | :--- | :--- | :--- |
+| **CSV** | >= 100 rows | **Polars** (Fastest) | **Pandas** (Fast) | Base Python |
+| **Parquet** | >= 100 rows | **Polars** (Fastest) | **Pandas** (Fast) | Base Python |
+| **JSON/BSON/Avro** | >= 500 items | **Polars** (Fastest) | *None* | Base Python |
+
+**Why this strategy?**
+- **CSV/Parquet**: Specialized engines like Polars and Pandas are drastically faster at parsing large files than Python's standard library. Polars is generally the winner (3x-6x faster).
+- **List-of-Dicts (JSON/BSON)**: Creating a Pandas DataFrame from a list of objects has significant overhead. Our benchmarks show that **Base Python is faster than Pandas** for this specific case. However, **Polars** remains faster for large lists (>500 items), so it is the exclusive optimization path here.
+
+The library automatically detects installed packages and selects the optimal path.
+
+### Conversion Pipeline
 The library follows a consistent pipeline for all conversions:
 1.  **Ingestion**: Read the raw input (string, bytes, or file stream) using a format-specific specialized library.
 2.  **Normalization**: Convert the input into a standard Python object structure (Lists and Dictionaries).
-3.  **Serialization**: Traverse the Python object and generate the TOON string using a custom, lightweight serializer.
+3.  **Serialization**: Traverse the Python object and generate the TOON string.
+    - **Compact Format**: Homogenous lists of objects are serialized as compact tables (`root[N]{cols}:\n vals...`) to save tokens.
 
 Below is the detailed approach for each supported format.
 
@@ -76,8 +87,8 @@ json_data = '{"user": "alice", "roles": ["admin"]}'
 print(convert_to_toon(json_data, 'json'))
 # Output:
 # user: alice
-# roles:
-#   - admin
+# roles[1]:
+#   admin
 ```
 
 ### 2. YAML (YAML Ain't Markup Language)
@@ -122,10 +133,9 @@ We use the standard `csv` library's `DictReader`.
 csv_data = "id,status\n1,open\n2,closed"
 print(convert_to_toon(csv_data, 'csv'))
 # Output:
-# - id: 1
-#   status: open
-# - id: 2
-#   status: closed
+# root[2]{id,status}:
+#  1,open
+#  2,closed
 ```
 
 ### 5. Apache Avro
@@ -137,6 +147,10 @@ We use `fastavro` for high-performance reading of binary Avro data.
 ```python
 # Assuming 'bytes_data' is loaded from a valid .avro file
 print(convert_to_toon(bytes_data, 'avro'))
+# Output example:
+# root[100]{id,timestamp,value}:
+#  1,1620000000,12.5
+#  ...
 ```
 
 ### 6. Apache Parquet
@@ -148,6 +162,10 @@ We leverage `pyarrow` to read Parquet files.
 ```python
 # Assuming 'bytes_data' is loaded from a valid .parquet file
 print(convert_to_toon(bytes_data, 'parquet'))
+# Output example:
+# root[50]{user,score}:
+#  alice,99
+#  bob,85
 ```
 
 ### 7. BSON (Binary JSON)

@@ -42,12 +42,33 @@ def _pandas_csv_to_toon(csv_string: str) -> str:
     """Optimized CSV conversion using Pandas."""
     df = pd.read_csv(io.StringIO(csv_string))
     if len(df) == 0:
-        return ""
-    cols = df.columns
-    result_series = "- " + cols[0] + ": " + df[cols[0]].astype(str)
-    for col in cols[1:]:
-        result_series = result_series + "\n  " + col + ": " + df[col].astype(str)
-    return "\n".join(result_series)
+        return "root[0]{}:"
+    
+    cols = list(df.columns)
+    cols_str = ",".join(cols)
+    count = len(df)
+    header = f"root[{count}]{{{cols_str}}}:"
+    
+    # Vectorized string creation: join all columns with comma
+    # Ensure all are strings
+    df_str = df.astype(str)
+    
+    # Use pandas flexible string concatenation or verify performant method
+    # For simplicity and correctness with small-medium data in pure pandas:
+    # We can join row by row or use apply which is slow-ish.
+    # Faster: 
+    #   result = df[cols[0]] + "," + df[cols[1]] ...
+    
+    if len(cols) > 0:
+        series_res = df_str[cols[0]]
+        for col in cols[1:]:
+             series_res = series_res + "," + df_str[col]
+        
+        # Indent values with 1 space
+        body = " " + series_res 
+        return header + "\n" + "\n".join(body)
+    else:
+        return header
 
 def _polars_parquet_to_toon(parquet_bytes: Union[bytes, io.BytesIO]) -> str:
     """Optimized Parquet conversion using Polars."""
@@ -61,22 +82,29 @@ def _polars_parquet_to_toon(parquet_bytes: Union[bytes, io.BytesIO]) -> str:
 def _polars_df_to_toon(df: 'pl.DataFrame') -> str: # type: ignore
     """Vectorized conversion of DataFrame to TOON string."""
     if df.height == 0:
-        return ""
+        return "root[0]{}:"
         
-    first_col = df.columns[0]
-    rest_cols = df.columns[1:]
+    cols = df.columns
+    cols_str = ",".join(cols)
+    count = df.height
+    header = f"root[{count}]{{{cols_str}}}:"
     
-    # Construct expressions
-    first_expr = pl.lit(f"- {first_col}: ") + df[first_col].cast(pl.Utf8)
-    rest_exprs = [pl.lit(f"  {col}: ") + df[col].cast(pl.Utf8) for col in rest_cols]
+    # Construct expressions: concat_str([col1, col2...], separator=",")
+    # Cast all to string first using strict cast or not? Using cast(pl.Utf8)
+    exprs = [pl.col(c).cast(pl.Utf8) for c in cols]
     
-    all_exprs = [first_expr] + rest_exprs
+    # We need to prepend space? 
+    # " " + val1 + "," + val2
+    # pl.concat_str with separator="," gives "val1,val2"
+    # then we prepend " "
     
-    # Execute vectorized string concatenation
     final_output = df.select(
-        pl.concat_str(all_exprs, separator="\n").str.join("\n")
+        (pl.lit(" ") + pl.concat_str(exprs, separator=",")).alias("res")
+    ).select(
+        pl.col("res").str.join("\n")
     ).item()
-    return final_output
+    
+    return header + "\n" + final_output
 
 def _warn_optimization_missing(feature: str):
     """Issue warning if enabled."""
@@ -86,6 +114,21 @@ def _warn_optimization_missing(feature: str):
             "Install 'polars' (recommended) or 'pandas' for improved performance on large datasets.",
             UserWarning
         )
+
+def _optimize_list_conversion(data: List[Dict]) -> str:
+    """
+    Attempts to use Polars for converting large lists of dicts (>500 items).
+    Benchmark shows Polars > Base > Pandas for this specific case.
+    """
+    if len(data) >= 500 and _HAS_POLARS:
+        try:
+            # pl.from_dicts is very fast
+            df = pl.from_dicts(data)
+            return _polars_df_to_toon(df)
+        except Exception:
+            # Fallback if structure is irregular (nested dicts inside might fail strict schema)
+             return toon_dumps(data)
+    return toon_dumps(data)
 
 def json_to_toon(data: Union[str, Dict, List]) -> str:
     """
@@ -106,6 +149,9 @@ def json_to_toon(data: Union[str, Dict, List]) -> str:
             parsed_data = json.loads(data)
         else:
             parsed_data = data
+            
+        if isinstance(parsed_data, list) and len(parsed_data) > 0 and isinstance(parsed_data[0], dict):
+             return _optimize_list_conversion(parsed_data)
         return toon_dumps(parsed_data)
     except json.JSONDecodeError as e:
         raise ConversionError(f"Invalid JSON: {e}")
@@ -131,6 +177,9 @@ def yaml_to_toon(data: Union[str, Dict, List]) -> str:
             parsed_data = yaml.safe_load(data)
         else:
             parsed_data = data
+            
+        if isinstance(parsed_data, list) and len(parsed_data) > 0 and isinstance(parsed_data[0], dict):
+             return _optimize_list_conversion(parsed_data)
         return toon_dumps(parsed_data)
     except yaml.YAMLError as e:
         raise ConversionError(f"Invalid YAML: {e}")
@@ -208,6 +257,9 @@ def avro_to_toon(data: Union[bytes, io.BytesIO]) -> str:
         # fastavro.reader reads OCF files which contain the schema
         reader = fastavro.reader(f)
         parsed_data = list(reader)
+        
+        if len(parsed_data) >= 500:
+             return _optimize_list_conversion(parsed_data)
         return toon_dumps(parsed_data)
     except ImportError as e:
         raise e
@@ -222,96 +274,76 @@ def _pandas_parquet_to_toon(parquet_bytes: Union[bytes, io.BytesIO]) -> str:
         f = parquet_bytes
     df = pd.read_parquet(f)
     if len(df) == 0:
-        return ""
+        return "root[0]{}:"
     
-    cols = df.columns
-    # Vectorized string creation
-    result_series = "- " + cols[0] + ": " + df[cols[0]].astype(str)
+    cols = list(df.columns)
+    cols_str = ",".join(cols)
+    count = len(df)
+    header = f"root[{count}]{{{cols_str}}}:"
     
-    for col in cols[1:]:
-        result_series = result_series + "\n  " + col + ": " + df[col].astype(str)
-        
-    return "\n".join(result_series)
+    df_str = df.astype(str)
+    if len(cols) > 0:
+        series_res = df_str[cols[0]]
+        for col in cols[1:]:
+             series_res = series_res + "," + df_str[col]
+        body = " " + series_res
+        return header + "\n" + "\n".join(body)
+    else:
+        return header
 
 def parquet_to_toon(data: Union[bytes, io.BytesIO]) -> str:
     """
-    Converts Parquet data to TOON.
-    Requires 'any2toon[parquet]'.
+    Converts Parquet bytes/file to TOON.
+    Requires 'pyarrow'.
+    Priority: Polars > Pandas > Base (using pyarrow)
     """
+    _ensure_dependency('pyarrow', 'parquet')
+    import pyarrow.parquet as pq
+    
     try:
-        _ensure_dependency("pyarrow", "parquet")
-        import pyarrow.parquet as pq
-        import pyarrow as pa
-        
-        # Prepare file-like object for metadata reading
         if isinstance(data, bytes):
             f = io.BytesIO(data)
         else:
             f = data
-            
-        # Check row count using metadata (fast, no data read)
-        # Note: Depending on pyarrow version, read_metadata might assume seekable stream
-        try:
-            metadata = pq.read_metadata(f)
-            row_count = metadata.num_rows
-        except Exception:
-            # If metadata read fails (e.g. stream issue), default to 0 and likely let standard path handle or fail
-            row_count = 0
-            
-        # Reset stream position if we read from it (BytesIO)
-        if hasattr(f, 'seek'):
+        
+        # Check size quickly
+        metadata = pq.read_metadata(f)
+        row_count = metadata.num_rows
+        
+        if row_count < 100:
             f.seek(0)
-            
-        if row_count >= 100:
+            table = pq.read_table(f)
+            parsed_data = table.to_pylist()
+            return toon_dumps(parsed_data)
+        else:
             if _HAS_POLARS:
                  return _polars_parquet_to_toon(data)
             elif _HAS_PANDAS:
-                 return _pandas_parquet_to_toon(data)
+                return _pandas_parquet_to_toon(data)
             else:
                 _warn_optimization_missing("Parquet")
-            
-        # Fallback / Normal Path
-        # Note: if we consumed 'data' as BytesIO, we need to pass the reset 'f' or original 'data' 
-        # but 'data' arg is unmodified if it was bytes. 
-        # If it was BytesIO passed in, we already reset it.
-        
-        table = pq.read_table(f)
-        parsed_data = table.to_pylist()
-        return toon_dumps(parsed_data)
-    except ImportError as e:
-        raise e
+                f.seek(0)
+                table = pq.read_table(f)
+                parsed_data = table.to_pylist()
+                return toon_dumps(parsed_data)
     except Exception as e:
         raise ConversionError(f"Invalid Parquet: {e}")
 
 def bson_to_toon(data: Union[bytes, io.BytesIO]) -> str:
     """
     Converts BSON data to TOON.
-    Handles single document or concatenated documents (dumps).
-    Requires 'any2toon[bson]'.
-    
-    Args:
-        data: BSON data as bytes or file-like object (BytesIO).
-              
-    Returns:
-        str: TOON formatted string.
-        
-    Raises:
-        ConversionError: If BSON parsing fails.
     """
+    _ensure_dependency('bson', 'bson')
+    import bson # pymongo
     try:
-        _ensure_dependency("bson", "bson")
-        import bson
-        
         if isinstance(data, io.BytesIO):
             bson_bytes = data.read()
         else:
             bson_bytes = data
             
-        # decode_all returns a list of dictionaries (handles multiple docs)
-        # It requires the data to be valid BSON messages concatenated
         parsed_data = bson.decode_all(bson_bytes)
+        if isinstance(parsed_data, list) and len(parsed_data) > 0:
+             return _optimize_list_conversion(parsed_data)
         return toon_dumps(parsed_data)
-    except ImportError as e:
-        raise e
     except Exception as e:
         raise ConversionError(f"Invalid BSON: {e}")

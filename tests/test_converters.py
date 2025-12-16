@@ -48,35 +48,29 @@ def test_nested_structures():
     name: User2
     roles: []"""
     
-    # Note: My serializer implementation might render empty list as [] or differently. 
-    # Let's adjust expectation based on implementation:
-    # _serialize_list returns "[]" if empty.
-    # _serialize_dict uses indent level.
-    # lists of dicts use "- " then indent+1 serialize.
+    # Updated expectation for Compact Table Format
+    # Logic: users is a list of dicts.
+    # users[2]{name,roles}:
+    #  User1,['admin', 'editor']  <-- Note: roles list converted to string representation by str()
+    #  User2,[]
     
     actual = convert_to_toon(json_data, 'json')
-    # Since exact whitespace might vary, let's verify key presence and basic structure
-    assert "users:" in actual
-    assert "- admin" in actual
-    assert "name: User1" in actual
+    assert "users[2]{name,roles}:" in actual
+    assert "User1" in actual
+    assert "User2" in actual
 
 def test_csv_to_toon():
     csv_data = """name,age,role
 Dave,40,manager
 Eve,28,developer"""
     # Expected:
-    # - name: Dave
-    #   age: 40
-    #   role: manager
-    # - name: Eve
-    #   age: 28
-    #   role: developer
+    # root[2]{name,age,role}:
+    #  Dave,40,manager
+    #  Eve,28,developer
     actual = convert_to_toon(csv_data, 'csv')
-    assert "name: Dave" in actual
-    assert "role: manager" in actual
-    assert "name: Eve" in actual
-    # Verify structure (elements are present)
-    assert actual.count("-") >= 2
+    assert "root[2]{name,age,role}:" in actual
+    assert "Dave,40,manager" in actual
+    assert "Eve,28,developer" in actual
 
 def test_avro_to_toon():
     schema = {
@@ -99,12 +93,14 @@ def test_avro_to_toon():
     fo.seek(0)
     data = fo.read()
     
-    # Expected output similar to list of dicts
+    # Expected:
+    # root[2]{station,temp}:
+    #  011990-99999,0
+    #  011990-99999,22
     actual = convert_to_toon(data, 'avro')
-    assert "station: 011990-99999" in actual
-    assert "temp: 0" in actual
-    assert "temp: 22" in actual
-    assert actual.count("-") >= 2
+    assert "root[2]{station,temp}:" in actual
+    assert "011990-99999,0" in actual
+    assert "011990-99999,22" in actual
 
 def test_parquet_to_toon():
     data = [
@@ -118,10 +114,9 @@ def test_parquet_to_toon():
     parquet_data = fo.read()
     
     actual = convert_to_toon(parquet_data, 'parquet')
-    assert "name: Alice" in actual
-    assert "score: 100" in actual
-    assert "name: Bob" in actual
-    assert actual.count("-") >= 2
+    assert "root[2]{name,score}:" in actual
+    assert "Alice,100" in actual
+    assert "Bob,200" in actual
 
 def test_invalid_json():
     with pytest.raises(ConversionError):
