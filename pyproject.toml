@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "any2toon"
 version = "0.1.0"
-description = "A library to convert JSON, YAML, and XML to TOON format."
+description = "A robust library to convert JSON, YAML, XML, CSV, Avro, Parquet, BSON, and NDJSON to TOON format."
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = [
@@ -27,4 +27,4 @@ pandas = ["pandas>=2.0.0"]
 all = ["fastavro>=1.0.0", "pyarrow>=10.0.0", "pymongo>=4.0.0", "polars>=0.19.0", "pandas>=2.0.0"]
 
 [project.urls]
-"Homepage" = "https://github.com/example/any2toon"
+"Homepage" = "https://github.com/AleLoredo/any2toon"
