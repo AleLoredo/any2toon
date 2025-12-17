@@ -101,9 +101,33 @@ def detect_format(data: Union[str, bytes]) -> str:
         # JSON heuristics
         if (stripped.startswith('{') and stripped.endswith('}')) or \
            (stripped.startswith('[') and stripped.endswith(']')):
-           # Verify fast if it's valid JSON? 
-           # Or just assume JSON based on structure? 
-           # Let's assume JSON.
+           
+           # Distinguish JSON vs NDJSON
+           # Heuristic: If it starts with '{', checks if multiple lines exist and first line is valid JSON.
+           if stripped.startswith('{'):
+                if '\n' in stripped:
+                    lines = stripped.splitlines()
+                    # Skip empty lines
+                    non_empty_lines = [l.strip() for l in lines if l.strip()]
+                    if len(non_empty_lines) > 1:
+                        # Check first line
+                        first = non_empty_lines[0]
+                        try:
+                            # If first line is a valid complete JSON object
+                            json.loads(first)
+                            
+                            # To be safe, check second line too (avoid false positive on formatted JSON like {"a":\n1})
+                            second = non_empty_lines[1]
+                            try:
+                                json.loads(second)
+                                return 'ndjson'
+                            except:
+                                # Second line invalid -> likely standard JSON split across lines
+                                return 'json'
+                        except:
+                            # First line invalid -> likely standard JSON
+                            return 'json'
+                            
            return 'json'
            
         # XML heuristics

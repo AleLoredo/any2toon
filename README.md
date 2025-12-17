@@ -51,8 +51,6 @@ pip install ".[parquet]"        # If installing locally from source
 
 ## 🛠️ Core Functionality & Approach
 
-## 🛠️ Core Functionality & Approach
-
 ### ⚡ Performance & Optimization Strategy
 The library uses a data-driven **Tiered Optimization Strategy** based on extensive benchmarking:
 
@@ -178,6 +176,22 @@ We use `pymongo` (specifically its `bson` module) to decode BSON data.
 import bson
 # Assuming 'bytes_data' is a BSON byte string
 print(convert_to_toon(bytes_data, 'bson'))
+print(convert_to_toon(bytes_data, 'bson'))
+```
+
+### 8. NDJSON (Newline Delimited JSON)
+**Approach**:
+We support the NDJSON format (one JSON object per line).
+- **Auto-Detection**: The library distinguishes NDJSON from standard JSON by checking line structure.
+- **Transformation**: Each line is parsed independently and aggregated into a list. Large lists (>500 items) are optimized using Polars.
+
+```python
+ndjson_data = '{"id": 1}\n{"id": 2}'
+print(convert_to_toon(ndjson_data, 'ndjson'))
+# Output:
+# root[2]{id}:
+#  1
+#  2
 ```
 
 ---
@@ -187,7 +201,7 @@ print(convert_to_toon(bytes_data, 'bson'))
 ### `convert_to_toon(data_input, input_format) -> str`
 The universal entry point.
 - `data_input`: `str` (for text formats), `bytes` or `BytesIO` (for binary formats like Avro/Parquet), or `dict/list` (if pre-parsed).
-- `input_format`: Case-insensitive string: `'json'`, `'yaml'`, `'xml'`, `'csv'`, `'avro'`, `'parquet'`, `'bson'`.
+- `input_format`: Case-insensitive string: `'json'`, `'yaml'`, `'xml'`, `'csv'`, `'avro'`, `'parquet'`, `'bson'`, `'ndjson'`.
 
 ### Specific Converters
 Found in `any2toon.converters`:
@@ -198,6 +212,7 @@ Found in `any2toon.converters`:
 - `avro_to_toon(data)`
 - `parquet_to_toon(data)`
 - `bson_to_toon(data)`
+- `ndjson_to_toon(data)`
 
 ### Exceptions
 - `InvalidFormatError`: Raised if you request a format not supported.

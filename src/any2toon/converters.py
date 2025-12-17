@@ -157,6 +157,37 @@ def json_to_toon(data: Union[str, Dict, List]) -> str:
         raise ConversionError(f"Invalid JSON: {e}")
     except Exception as e:
         raise ConversionError(f"JSON conversion failed: {e}")
+    except Exception as e:
+        raise ConversionError(f"JSON conversion failed: {e}")
+
+def ndjson_to_toon(data: Union[str, bytes]) -> str:
+    """
+    Converts NDJSON (Newline Delimited JSON) to TOON.
+    
+    Args:
+        data: NDJSON string or bytes.
+              
+    Returns:
+        str: TOON formatted string.
+    """
+    try:
+        if isinstance(data, bytes):
+            data_str = data.decode('utf-8')
+        else:
+            data_str = data
+            
+        parsed_data = []
+        for line in data_str.strip().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parsed_data.append(json.loads(line))
+            
+        return _optimize_list_conversion(parsed_data)
+    except json.JSONDecodeError as e:
+        raise ConversionError(f"Invalid NDJSON: {e}")
+    except Exception as e:
+        raise ConversionError(f"NDJSON conversion failed: {e}")
 
 def yaml_to_toon(data: Union[str, Dict, List]) -> str:
     """

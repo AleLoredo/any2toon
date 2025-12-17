@@ -21,6 +21,9 @@ def convert_to_toon(data_input: Any, input_format: str) -> str:
     
     if fmt == 'json':
         return json_to_toon(data_input)
+    elif fmt == 'ndjson':
+        from .converters import ndjson_to_toon
+        return ndjson_to_toon(data_input)
     elif fmt == 'yaml':
         return yaml_to_toon(data_input)
     elif fmt == 'xml':
@@ -70,6 +73,7 @@ any2toon Conversion Functions:
    - parquet_to_toon(data) [Optimized with Polars/Pandas for large files]
    - avro_to_toon(data)    [Optimized with Polars for large lists]
    - bson_to_toon(data)    [Optimized with Polars for large lists]
+   - ndjson_to_toon(data)  [Optimized with Polars for large lists]
    
 For more details, see the documentation or inspect docstrings.
     """
