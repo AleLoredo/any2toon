@@ -22,9 +22,10 @@ dependencies = [
 avro = ["fastavro>=1.0.0"]
 parquet = ["pyarrow>=10.0.0"]
 bson = ["pymongo>=4.0.0"]
+lite = ["fastavro>=1.0.0", "pyarrow>=10.0.0", "pymongo>=4.0.0"]
 polars = ["polars>=0.19.0"]
 pandas = ["pandas>=2.0.0"]
-all = ["fastavro>=1.0.0", "pyarrow>=10.0.0", "pymongo>=4.0.0", "polars>=0.19.0", "pandas>=2.0.0"]
+all = ["fastavro>=1.0.0", "pyarrow>=10.0.0", "pymongo>=4.0.0", "polars>=0.19.0"]
 
 [project.urls]
 "Homepage" = "https://github.com/AleLoredo/any2toon"

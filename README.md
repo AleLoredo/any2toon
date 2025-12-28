@@ -1,14 +1,23 @@
 # any2toon
 
-**any2toon** is a robust and lightweight Python library designed to convert various data serialization formats (**JSON, YAML, XML, CSV, Avro, Parquet, BSON**) into **TOON** (Token Oriented Object Notation) to optimize interactions with LLMs.
+**any2toon** is a robust and lightweight Python library designed to convert various data serialization formats (**JSON, YAML, XML, CSV, Avro, Parquet, BSON**) into **TOON** (Token Oriented Object Notation) reducing tokens consumption on interactions with LLMs.
 
 ![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 
+## Go-to guide
+```bash
+!pip install any2toon[all]
+import any2toon as att
+data = """your data goes here"""
+output = att.convert(data)
+print(output)
+```
+
 ## 📖 Introduction
 
-**any2toon** solves the problem of preparing diverse data sources for Large Language Model (LLM) ingestion. LLMs often perform better (and cost less) when processing data that is free of excessive syntactic noise (like the braces and quotes in JSON). 
+**any2toon** solves the problem of preparing diverse data sources for Large Language Model (LLM) ingestion. LLMs often perform better (and cost less) when processing data that is free of excessive syntactic noise (like the braces and quotes in JSON).
 
 **TOON** format is designed to be:
 - **Token-Efficient**: Minimizes punctuation overhead.
@@ -21,18 +30,27 @@ This library acts as a universal adapter, taking standard formats (JSON, YAML, X
 
 ## 🚀 Installation
 
-### Minimal Installation (JSON, YAML, XML, CSV support)
+### Minimal Installation 
+This supports  JSON, YAML, XML, CSV conversion and if available will make use of Pollars (or Pandas as a fallback) for performance optimization.
+
 ```bash
 pip install any2toon
 ```
 
-### Full Installation (All formats + Optimizations)
+### Lightweight Installation
+This supports all formats (Avro, Parquet, BSON) but **skips** installing the Polars engine to keep the environment lighter.
+```bash
+pip install "any2toon[lite]"
+```
+
+### Full Installation - Strongly recommended for datasets > 500 items
+This supports all formats (Avro, Parquet, BSON) and installs **Polars** for maximum performance.
 ```bash
 pip install "any2toon[all]"
 ```
 
 ### Format-Specific Installation
-If you only need specific formats, you can install them individually to keep your environment light:
+If you only need specific formats, you can install them individually to keep your environment lighter:
 
 ```bash
 pip install "any2toon[parquet]" # For Parquet support (if installing from PyPI)
