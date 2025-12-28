@@ -249,3 +249,21 @@ source venv/bin/activate
 # Run tests
 pytest
 ```
+
+---
+
+## 📜 Changelog
+
+### 0.1.3 (Current)
+- **New Feature**: Added `[lite]` installation option for full format support (Avro, Parquet, BSON) without the heavy Polars engine.
+- **Optimization**: Removed `pandas` from the default `[all]` installation to prioritize Polars. `[all]` now ensures Polars is installed for maximum performance.
+
+### 0.1.2
+- **Fix**: Improved error handling for malformed CSVs.
+
+### 0.1.1
+- **New Feature**: Added support for NDJSON (Newline Delimited JSON).
+- **New Feature**: Added auto-detection for NDJSON in `sniffer.py`.
+
+### 0.1.0
+- **Initial Release**: Basic support for JSON, XML, YAML, and CSV conversions.
