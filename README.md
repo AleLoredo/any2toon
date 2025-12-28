@@ -8,11 +8,11 @@
 
 ## Go-to guide
 ```bash
-!pip install any2toon[all]
-import any2toon as att
-data = """your data goes here"""
-output = att.convert(data)
-print(output)
+!pip install any2toon[all] #Install dependencies for top performance and maximum compatibility
+import any2toon as att    #Import the library
+data = """your serialized data goes here"""
+toon = att.convert(data) #Auto-detects serialized data format and converts to TOON
+print(toon) #Prints the TOON string
 ```
 
 ## 📖 Introduction
